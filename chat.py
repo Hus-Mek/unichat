@@ -5,7 +5,7 @@ import io
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 import chromadb
-from groq import Groq  # pip install groq
+from groq import Groq  
 
 if "indexed_files" not in st.session_state:
     st.session_state.indexed_files = []
@@ -20,7 +20,6 @@ st.title("Chatbot Demo")
 EMBED_MODEL = "all-MiniLM-L6-v2"
 CHROMA_DIR = "demo_store"
 
-# Groq API setup - Uses Streamlit Secrets
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except:
@@ -54,26 +53,22 @@ def extract_xlsx_bytes(xlsx_bytes):
     xls = pd.ExcelFile(io.BytesIO(xlsx_bytes))
     all_text = []
     
-    # Process each sheet
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(xls, sheet_name=sheet_name)
         
-        # Add sheet header with more context
         all_text.append(f"\n=== Sheet: {sheet_name} ===")
         all_text.append(f"Columns: {', '.join(str(col) for col in df.columns)}\n")
         
-        # Convert each row to a complete record - keep them together
         for idx, row in df.iterrows():
             row_text = []
             for col in df.columns:
                 value = row[col]
-                if pd.notna(value):  # Skip empty cells
+                if pd.notna(value):  
                     row_text.append(f"{col}: {value}")
             
-            if row_text:  # Only add non-empty rows
-                # Each row on its own line for better chunking
+            if row_text:  
                 all_text.append(" | ".join(row_text))
-                all_text.append("")  # Empty line between rows
+                all_text.append("")  
         
         all_text.append("\n")
     
@@ -88,24 +83,22 @@ def chunk_text(text, max_length=1200):
     
     for line in lines:
         line = line.strip()
-        if not line:  # Skip empty lines
+        if not line:  
             continue
             
-        # If adding this line exceeds max_length and we have content, save chunk
         if len(buf) + len(line) > max_length and buf:
             parts.append(buf.strip())
             buf = line + "\n"
         else:
             buf += line + "\n"
     
-    # Don't forget the last chunk
     if buf.strip():
         parts.append(buf.strip())
     
     return parts
 
 
-def query_llm_groq(question, context):
+def query_llm_groq(question, context, model="llama-3.1-70b-versatile"):
     """Use Groq API - SUPER FAST (500+ tokens/sec)"""
     prompt = f"""You are a university assistant. 
 Answer the question using ONLY the context below.
@@ -124,10 +117,10 @@ QUESTION:
 
     try:
         completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # Fast and accurate
+            model=model,  
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
-            max_tokens=1000  # Increased to allow for longer lists
+            max_tokens=1000
         )
         return completion.choices[0].message.content
     except Exception as e:
@@ -139,21 +132,36 @@ QUESTION:
 
 
 with st.sidebar:
+    st.header("🤖 Model Settings")
+    
+    model_choice = st.selectbox(
+        "Groq Model",
+        [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-70b-versatile", 
+            "mixtral-8x7b-32768",
+            "gemma2-9b-it"
+        ],
+        index=1,  
+        help="3.3 = Newest | 3.1 = Most tested | Mistral = Fast | Gemma = Fastest"
+    )
+    
+    st.caption(f"Selected: {model_choice}")
+    
+    st.divider()
+    
     st.header("📁 Upload Documents")
     pdf1 = st.file_uploader("PDF 1", type="pdf")
     pdf2 = st.file_uploader("PDF 2", type="pdf")
     excel = st.file_uploader("Excel file", type="xlsx")
     
-    # Option to clear database before indexing
     clear_before_index = st.checkbox("Clear previous documents before indexing", value=True, 
                                       help="Recommended: removes old documents before adding new ones")
     
     index_btn = st.button("Index Documents", use_container_width=True)
     
-    # Manual clear button
     if st.button("🗑️ Clear All Documents", use_container_width=True, type="secondary"):
         try:
-            # Delete all documents from collection
             all_ids = collection.get()["ids"]
             if all_ids:
                 collection.delete(ids=all_ids)
@@ -165,7 +173,6 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Error clearing: {e}")
     
-    # Show indexed files
     if st.session_state.indexed_files:
         st.success("✅ Indexed files:")
         for f in st.session_state.indexed_files:
@@ -179,7 +186,6 @@ with st.sidebar:
     if index_btn:
         st.subheader("Indexing documents…")
         
-        # Clear existing documents if checkbox is selected
         if clear_before_index:
             try:
                 all_ids = collection.get()["ids"]
@@ -224,7 +230,6 @@ with st.sidebar:
             st.error("No documents uploaded!")
             st.stop()
 
-        # Embed + Insert
         st.write("Embedding…")
         texts = [c["text"] for c in all_chunks]
         embeddings = embedder.encode(texts, show_progress_bar=True).tolist()
@@ -234,7 +239,6 @@ with st.sidebar:
         st.session_state.indexed_files = file_names
         st.success("Documents indexed successfully!")
 
-# Main area - Question and Answer
 st.write("---")
 
 if not st.session_state.indexed_files:
@@ -243,13 +247,12 @@ else:
     st.header("💬 Ask Your Question")
     question = st.text_input(
         "Type your question here:",
-        placeholder="",
+        placeholder="ask about courses, lecturers etc....",
         key="main_question"
     )
     ask_btn = st.button("🔍 Get Answer", type="primary", use_container_width=True)
 
     if ask_btn and question.strip():
-        # Check rate limit cooldown (2 seconds between requests)
         import time
         current_time = time.time()
         time_since_last = current_time - st.session_state.last_request_time
@@ -270,27 +273,27 @@ else:
         retrieved_docs = result["documents"][0]
         
         # # DEBUG - Uncomment to see retrieved chunks
-        # st.write(f"**DEBUG: Found {len(retrieved_docs)} chunks**")
-        # question_lower = question.lower()
-        # if "course" in question_lower or "class" in question_lower:
-        #     st.info("💡 Tip: Check if the course/prof name appears in the retrieved chunks below")
-        # for i, doc in enumerate(retrieved_docs):
-        #     st.write(f"**Chunk {i+1}:**")
-        #     st.text_area(f"Content {i+1}", doc, height=150, key=f"chunk_{i}")
+        st.write(f"**DEBUG: Found {len(retrieved_docs)} chunks**")
+        question_lower = question.lower()
+        if "course" in question_lower or "class" in question_lower:
+             st.info("💡 Tip: Check if the course/prof name appears in the retrieved chunks below")
+        for i, doc in enumerate(retrieved_docs):
+             st.write(f"**Chunk {i+1}:**")
+             st.text_area(f"Content {i+1}", doc, height=150, key=f"chunk_{i}")
         
         context = "\n\n".join(retrieved_docs)
 
         # # DEBUG - Uncomment to view full context
-        # with st.expander("📚 View Retrieved Context"):
-        #     st.code(context, language="text")
+        with st.expander("📚 View Retrieved Context"):
+             st.code(context, language="text")
 
         # Show that answer is being generated
-        with st.spinner("🤔 Generating answer..."):
+        with st.spinner(f"🤔 Generating answer with {model_choice}..."):
             import time
             start = time.time()
-            answer = query_llm_groq(question, context)
+            answer = query_llm_groq(question, context, model=model_choice)
             elapsed = time.time() - start
             
         st.write("### 🧠 Answer:")
         st.write(answer)
-        st.caption(f"⚡ Generated in {elapsed:.2f} seconds")
+        st.caption(f"⚡ Generated in {elapsed:.2f} seconds | Model: {model_choice}")
