@@ -18,10 +18,11 @@ st.title("Chatbot Demo")
 EMBED_MODEL = "all-MiniLM-L6-v2"
 CHROMA_DIR = "demo_store"
 
-GROQ_API_KEY = "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"  
-if GROQ_API_KEY:
-    groq_client = Groq(api_key=GROQ_API_KEY)
-
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    st.error("⚠️ API key not configured. Please contact the administrator.")
+    st.stop()
 
 
 groq_client = Groq(api_key=GROQ_API_KEY)
