@@ -442,7 +442,7 @@ else:
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric("⚡ Time", f"{elapsed:.2f}s")
+            st.metric(" Time", f"{elapsed:.2f}s")
         
         with col2:
             if token_info:
@@ -458,13 +458,13 @@ else:
         
         with col4:
             if token_info:
-                st.metric("💰 Cost", f"${total_cost:.6f}")
+                st.metric(" Cost", f"${total_cost:.6f}")
             else:
-                st.metric("💰 Cost", "N/A")
+                st.metric(" Cost", "N/A")
         
         # Show detailed breakdown in expander
         if token_info:
-            with st.expander("💡 Token & Cost Breakdown"):
+            with st.expander(" Token & Cost Breakdown"):
                 st.markdown(f"""
                 **Model:** `{model_choice}`
                 
