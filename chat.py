@@ -177,10 +177,10 @@ with st.sidebar:
     # Show model info with more details
     model_info = {
         # Production
-        "llama-3.3-70b-versatile": "70B | Production | Best quality ⭐",
-        "openai/gpt-oss-120b": "120B | Production | Reasoning + Search 🧠",
-        "qwen/qwen3-32b": "32B | Production | Balanced ⚖️",
-        "llama-3.1-8b-instant": "8B | Production | Fast ⚡",
+        "llama-3.3-70b-versatile": "70B | Production | Best quality ",
+        "openai/gpt-oss-120b": "120B | Production | Reasoning + Search ",
+        "qwen/qwen3-32b": "32B | Production | Balanced ",
+        "llama-3.1-8b-instant": "8B | Production | Fast ",
         
     }
     
