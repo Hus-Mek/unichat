@@ -5,12 +5,14 @@ import io
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 import chromadb
-from groq import Groq  
+from groq import Groq  # pip install groq
 
 if "indexed_files" not in st.session_state:
     st.session_state.indexed_files = []
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "last_request_time" not in st.session_state:
+    st.session_state.last_request_time = 0
 
 st.set_page_config(page_title="Uni Assistant Demo", layout="wide")
 st.title("Chatbot Demo")
@@ -18,12 +20,12 @@ st.title("Chatbot Demo")
 EMBED_MODEL = "all-MiniLM-L6-v2"
 CHROMA_DIR = "demo_store"
 
+# Groq API setup - Uses Streamlit Secrets
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except:
     st.error("⚠️ API key not configured. Please contact the administrator.")
     st.stop()
-
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
@@ -56,19 +58,22 @@ def extract_xlsx_bytes(xlsx_bytes):
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(xls, sheet_name=sheet_name)
         
+        # Add sheet header with more context
         all_text.append(f"\n=== Sheet: {sheet_name} ===")
         all_text.append(f"Columns: {', '.join(str(col) for col in df.columns)}\n")
         
+        # Convert each row to a complete record - keep them together
         for idx, row in df.iterrows():
             row_text = []
             for col in df.columns:
                 value = row[col]
-                if pd.notna(value):  
+                if pd.notna(value):  # Skip empty cells
                     row_text.append(f"{col}: {value}")
             
-            if row_text:  
+            if row_text:  # Only add non-empty rows
+                # Each row on its own line for better chunking
                 all_text.append(" | ".join(row_text))
-                all_text.append("")  
+                all_text.append("")  # Empty line between rows
         
         all_text.append("\n")
     
@@ -83,15 +88,17 @@ def chunk_text(text, max_length=1200):
     
     for line in lines:
         line = line.strip()
-        if not line:  
+        if not line:  # Skip empty lines
             continue
             
+        # If adding this line exceeds max_length and we have content, save chunk
         if len(buf) + len(line) > max_length and buf:
             parts.append(buf.strip())
             buf = line + "\n"
         else:
             buf += line + "\n"
     
+    # Don't forget the last chunk
     if buf.strip():
         parts.append(buf.strip())
     
@@ -115,14 +122,20 @@ CONTEXT:
 QUESTION:
 {question}"""
 
-    completion = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",  
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.1,
-        max_tokens=1000  
-    )
-    
-    return completion.choices[0].message.content
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # Fast and accurate
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=1000  # Increased to allow for longer lists
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        error_msg = str(e)
+        if "rate_limit" in error_msg.lower():
+            return "⚠️ Rate limit reached. Please wait a moment and try again. (Groq free tier: 30 requests/minute)"
+        else:
+            return f"⚠️ Error generating answer: {error_msg}"
 
 
 with st.sidebar:
@@ -132,10 +145,15 @@ with st.sidebar:
     excel = st.file_uploader("Excel file", type="xlsx")
     index_btn = st.button("Index Documents", use_container_width=True)
     
+    # Show indexed files
     if st.session_state.indexed_files:
         st.success("✅ Indexed files:")
         for f in st.session_state.indexed_files:
             st.text(f)
+    
+    st.divider()
+    st.caption("ℹ️ Using Groq free tier: 30 requests/minute")
+    st.caption("💡 Wait 2 seconds between questions")
 
 
     if index_btn:
@@ -175,6 +193,7 @@ with st.sidebar:
             st.error("No documents uploaded!")
             st.stop()
 
+        # Embed + Insert
         st.write("Embedding…")
         texts = [c["text"] for c in all_chunks]
         embeddings = embedder.encode(texts, show_progress_bar=True).tolist()
@@ -184,6 +203,7 @@ with st.sidebar:
         st.session_state.indexed_files = file_names
         st.success("Documents indexed successfully!")
 
+# Main area - Question and Answer
 st.write("---")
 
 if not st.session_state.indexed_files:
@@ -198,9 +218,21 @@ else:
     ask_btn = st.button("🔍 Get Answer", type="primary", use_container_width=True)
 
     if ask_btn and question.strip():
+        # Check rate limit cooldown (2 seconds between requests)
+        import time
+        current_time = time.time()
+        time_since_last = current_time - st.session_state.last_request_time
+        
+        if time_since_last < 2:
+            st.warning(f"⏳ Please wait {2 - time_since_last:.1f} seconds between questions to avoid rate limits.")
+            st.stop()
+        
+        st.session_state.last_request_time = current_time
+        
         st.subheader("Answer")
 
-    
+        # Retrieve MORE chunks to handle bidirectional queries better
+        # e.g., "courses by Prof X" vs "who teaches course Y"
         q_emb = embedder.encode([question]).tolist()[0]
         result = collection.query(query_embeddings=[q_emb], n_results=15)
 
