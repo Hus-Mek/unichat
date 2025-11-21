@@ -309,7 +309,7 @@ else:
     st.header("💬 Ask Your Question")
     question = st.text_input(
         "Type your question here:",
-        placeholder="e.g., What courses does Dr. Smith teach? or Who teaches Math 101?",
+        placeholder="e.g. Who teaches Math 101?",
         key="main_question"
     )
     ask_btn = st.button("🔍 Get Answer", type="primary", use_container_width=True)
