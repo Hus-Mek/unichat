@@ -120,7 +120,7 @@ QUESTION:
             model=model,  
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
-            max_tokens=1000
+            max_tokens=100000
         )
         return completion.choices[0].message.content
     except Exception as e:
