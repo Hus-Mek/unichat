@@ -201,47 +201,7 @@ with st.sidebar:
     )
     st.caption(f"📝 Allows answers up to ~{int(max_tokens * 0.75)} words")
     
-    # Model comparison guide
-    with st.expander("📖 Model Comparison Guide"):
-        st.markdown("""
-        ### Production Models (Recommended)
-        
-        **Best Quality:**
-        - `llama-3.3-70b` (70B) - Industry standard ⭐
-        - `gpt-oss-120b` (120B) - Largest, reasoning
-        
-        **Balanced:**
-        - `qwen3-32b` (32B) - Good speed + quality
-        - `llama-3.1-8b` (8B) - Fast but accurate
-        
-        ### Preview Models (Experimental)
-        
-        **Speed Testing:**
-        - `llama-3.2-3b` (3B) - 3x faster than 8B
-        - `llama-3.2-1b` (1B) - 5x faster than 8B
-        
-        **Reasoning:**
-        - `deepseek-r1-*` - Specialized reasoning models
-        
-        ---
-        
-        ### Size vs Speed Guide:
-        
-        | Model Size | Speed | Quality | Use Case |
-        |------------|-------|---------|----------|
-        | **120B** | Slow | ⭐⭐⭐⭐⭐ | Complex reasoning |
-        | **70B** | Medium | ⭐⭐⭐⭐⭐ | Production |
-        | **32B** | Fast | ⭐⭐⭐⭐ | Balanced |
-        | **8B** | Fast | ⭐⭐⭐⭐ | Most RAG tasks |
-        | **3B** | Very Fast | ⭐⭐⭐ | Simple queries |
-        | **1B** | Fastest | ⭐⭐ | Testing only |
-        
-        ### For RAG (Document Q&A):
-        - ✅ Start with: `llama-3.3-70b`
-        - ⚡ If too slow: `llama-3.1-8b`
-        - 🧪 Experiment: `llama-3.2-3b` or `qwen3-32b`
-        - ❌ Avoid: `1B` models (too small)
-        """)
+    
     
     st.divider()
     
