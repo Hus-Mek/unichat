@@ -168,11 +168,7 @@ with st.sidebar:
             "qwen/qwen3-32b",               # 32B - Balanced
             "llama-3.1-8b-instant",         # 8B - Fast
             
-            # Preview models (experimental)
-            "llama-3.2-3b-preview",         # 3B - Very fast
-            "llama-3.2-1b-preview",         # 1B - Fastest
-            "deepseek-r1-distill-qwen-32b", # 32B - Reasoning
-            "deepseek-r1-distill-llama-70b",# 70B - Reasoning
+         
         ],
         index=0,  # Default to 3.3 70B
         help="Production = stable | Preview = experimental but faster"
@@ -186,11 +182,6 @@ with st.sidebar:
         "qwen/qwen3-32b": "32B | Production | Balanced ⚖️",
         "llama-3.1-8b-instant": "8B | Production | Fast ⚡",
         
-        # Preview/Small
-        "llama-3.2-3b-preview": "3B | Preview | Very fast ⚡⚡",
-        "llama-3.2-1b-preview": "1B | Preview | Fastest ⚡⚡⚡",
-        "deepseek-r1-distill-qwen-32b": "32B | Preview | Reasoning 🤔",
-        "deepseek-r1-distill-llama-70b": "70B | Preview | Deep reasoning 🧠",
     }
     
     st.caption(f"📊 {model_info.get(model_choice, 'Unknown')}")
