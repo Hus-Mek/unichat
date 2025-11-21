@@ -4,3 +4,4 @@ pypdf
 sentence-transformers
 chromadb
 groq
+openpyxl
