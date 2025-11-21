@@ -137,10 +137,14 @@ with st.sidebar:
     model_choice = st.selectbox(
         "Groq Model",
         [
-            "llama-3.3-70b-versatile",
-            "llama-3.1-70b-versatile", 
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it"
+            "llama-3.3-70b-versatile",      # 70B - Newest, best quality
+            "llama-3.1-70b-versatile",      # 70B - Most tested, excellent
+            "llama-3.1-8b-instant",         # 8B - Fast, good quality
+            "llama3-70b-8192",              # 70B - Alternative
+            "llama3-8b-8192",               # 8B - Faster alternative
+            "mixtral-8x7b-32768",           # 8x7B - Fast, good reasoning
+            "gemma2-9b-it",                 # 9B - Fastest
+            "gemma-7b-it"                   # 7B - Very fast
         ],
         index=1,  
         help="3.3 = Newest | 3.1 = Most tested | Mistral = Fast | Gemma = Fastest"
