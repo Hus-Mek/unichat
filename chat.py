@@ -143,7 +143,27 @@ with st.sidebar:
     pdf1 = st.file_uploader("PDF 1", type="pdf")
     pdf2 = st.file_uploader("PDF 2", type="pdf")
     excel = st.file_uploader("Excel file", type="xlsx")
+    
+    # Option to clear database before indexing
+    clear_before_index = st.checkbox("Clear previous documents before indexing", value=True, 
+                                      help="Recommended: removes old documents before adding new ones")
+    
     index_btn = st.button("Index Documents", use_container_width=True)
+    
+    # Manual clear button
+    if st.button("🗑️ Clear All Documents", use_container_width=True, type="secondary"):
+        try:
+            # Delete all documents from collection
+            all_ids = collection.get()["ids"]
+            if all_ids:
+                collection.delete(ids=all_ids)
+                st.session_state.indexed_files = []
+                st.success("✅ All documents cleared!")
+                st.rerun()
+            else:
+                st.info("No documents to clear")
+        except Exception as e:
+            st.error(f"Error clearing: {e}")
     
     # Show indexed files
     if st.session_state.indexed_files:
@@ -158,6 +178,17 @@ with st.sidebar:
 
     if index_btn:
         st.subheader("Indexing documents…")
+        
+        # Clear existing documents if checkbox is selected
+        if clear_before_index:
+            try:
+                all_ids = collection.get()["ids"]
+                if all_ids:
+                    collection.delete(ids=all_ids)
+                    st.info("🗑️ Cleared previous documents")
+            except Exception as e:
+                st.warning(f"Could not clear previous documents: {e}")
+        
         all_chunks = []
         file_names = []
 
