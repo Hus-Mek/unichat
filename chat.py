@@ -142,10 +142,6 @@ with st.sidebar:
             "qwen/qwen3-32b",               # 32B - Balanced
             "llama-3.1-8b-instant",         # 8B - Fast
             
-            "llama-3.2-3b-preview",         # 3B - Very fast
-            "llama-3.2-1b-preview",         # 1B - Fastest
-            "deepseek-r1-distill-qwen-32b", # 32B - Reasoning
-            "deepseek-r1-distill-llama-70b",# 70B - Reasoning
         ],
         index=1,  
         help="3.3 = Newest | 3.1 = Most tested | Mistral = Fast | Gemma = Fastest"
