@@ -5,3 +5,4 @@ sentence-transformers
 chromadb
 groq
 openpyxl
+raganything>=0.1.0
