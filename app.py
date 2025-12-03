@@ -1,0 +1,341 @@
+"""
+Streamlit Application
+Main UI for University RAG Assistant
+"""
+
+import streamlit as st
+import time
+from pathlib import Path
+
+# Import our modules
+from src import Config, RAGEngine, LLMClient, AccessController
+
+# ============================================
+# SESSION STATE
+# ============================================
+if "indexed_files" not in st.session_state:
+    st.session_state.indexed_files = []
+if "last_request_time" not in st.session_state:
+    st.session_state.last_request_time = 0
+if "rag_engine" not in st.session_state:
+    st.session_state.rag_engine = None
+if "llm_client" not in st.session_state:
+    st.session_state.llm_client = None
+if "access_controller" not in st.session_state:
+    st.session_state.access_controller = None
+
+# ============================================
+# PAGE CONFIG
+# ============================================
+st.set_page_config(
+    page_title="University Assistant",
+    page_icon="🎓",
+    layout="wide"
+)
+
+st.title("🎓 University RAG Assistant")
+st.caption("Professional RAG system with 3-level access control")
+
+# ============================================
+# INITIALIZATION
+# ============================================
+# Get API key
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    st.error("⚠️ GROQ_API_KEY not found in secrets. Please configure it.")
+    st.stop()
+
+# Initialize components (cached in session state)
+if st.session_state.rag_engine is None:
+    with st.spinner("Initializing RAG engine..."):
+        st.session_state.rag_engine = RAGEngine()
+        st.session_state.llm_client = LLMClient(GROQ_API_KEY)
+        st.session_state.access_controller = AccessController()
+
+rag_engine = st.session_state.rag_engine
+llm_client = st.session_state.llm_client
+access_controller = st.session_state.access_controller
+
+# ============================================
+# SIDEBAR - USER CONTEXT & SETTINGS
+# ============================================
+with st.sidebar:
+    st.header("👤 User Context")
+    
+    # Access level selection
+    user_access_level = st.selectbox(
+        "Access Level",
+        list(Config.ACCESS_LEVELS.keys()),
+        format_func=lambda x: Config.ACCESS_LEVELS[x],
+        help="Select your access level"
+    )
+    
+    # User ID for personal documents
+    user_id = st.text_input(
+        "User ID (optional)",
+        placeholder="e.g., stu_12345",
+        help="For accessing personal documents"
+    )
+    
+    # Show permissions
+    st.caption("**You can access:**")
+    st.caption(access_controller.get_permissions_text(user_access_level))
+    
+    st.divider()
+    
+    # Model settings
+    st.header("🤖 Model Settings")
+    
+    model_choice = st.selectbox(
+        "Groq Model",
+        Config.get_model_list(),
+        help="Choose the AI model"
+    )
+    
+    model_config = Config.get_model_config(model_choice)
+    st.caption(f"📊 {model_config.description}")
+    
+    max_tokens = st.slider(
+        "Max Output Tokens",
+        min_value=500,
+        max_value=4096,
+        value=2048,
+        step=256,
+        help="Maximum answer length"
+    )
+    
+    st.divider()
+    
+    # Document upload section
+    st.header("📁 Upload Documents")
+    
+    # Document access level
+    doc_access_level = st.selectbox(
+        "Document Access Level",
+        list(Config.ACCESS_LEVELS.keys()),
+        format_func=lambda x: Config.ACCESS_LEVELS[x],
+        key="doc_access",
+        help="Who can access this document?"
+    )
+    
+    # Document owner
+    doc_owner = st.text_input(
+        "Document Owner (optional)",
+        placeholder="e.g., stu_12345",
+        help="For personal documents",
+        key="doc_owner"
+    )
+    
+    st.caption("---")
+    
+    # File uploaders
+    uploaded_files = st.file_uploader(
+        "Upload Documents",
+        type=['pdf', 'xlsx', 'xls'],
+        accept_multiple_files=True,
+        help="Upload PDF or Excel files"
+    )
+    
+    clear_before_index = st.checkbox(
+        "Clear previous documents",
+        value=True,
+        help="Remove old documents before indexing"
+    )
+    
+    index_btn = st.button(
+        "📚 Index Documents",
+        type="primary",
+        use_container_width=True
+    )
+    
+    # Clear database button
+    if st.button("🗑️ Clear All Documents", use_container_width=True):
+        result = rag_engine.clear_database()
+        if result["success"]:
+            st.session_state.indexed_files = []
+            st.success(f"✅ Cleared {result.get('deleted', 0)} chunks")
+            st.rerun()
+        else:
+            st.error(f"Error: {result.get('error')}")
+    
+    # Show indexed files
+    if st.session_state.indexed_files:
+        st.success("✅ Indexed:")
+        for f in st.session_state.indexed_files:
+            st.text(f)
+    
+    # Database stats
+    stats = rag_engine.get_stats()
+    if stats["success"]:
+        st.divider()
+        st.caption(f"📊 Total chunks: {stats['total_chunks']}")
+
+# ============================================
+# DOCUMENT INDEXING
+# ============================================
+if index_btn and uploaded_files:
+    st.subheader("Indexing Documents")
+    
+    # Clear if requested
+    if clear_before_index:
+        result = rag_engine.clear_database()
+        if result["success"] and result.get("deleted", 0) > 0:
+            st.info(f"🗑️ Cleared {result['deleted']} previous chunks")
+    
+    # Index each file
+    indexed_files = []
+    
+    for uploaded_file in uploaded_files:
+        with st.spinner(f"Indexing {uploaded_file.name}..."):
+            file_bytes = uploaded_file.read()
+            file_extension = Path(uploaded_file.name).suffix
+            
+            result = rag_engine.index_document(
+                file_bytes=file_bytes,
+                file_name=uploaded_file.name,
+                file_extension=file_extension,
+                access_level=doc_access_level,
+                owner=doc_owner if doc_owner else None
+            )
+            
+            if result["success"]:
+                access_label = Config.ACCESS_LEVELS[doc_access_level]
+                file_icon = "📄" if file_extension == ".pdf" else "📊"
+                indexed_files.append(
+                    f"{file_icon} {result['file_name']} ({access_label}) - {result['chunks']} chunks"
+                )
+                st.success(f"✅ Indexed: {result['file_name']} ({result['chunks']} chunks)")
+            else:
+                st.error(f"❌ Failed: {uploaded_file.name} - {result['error']}")
+    
+    # Update session state
+    st.session_state.indexed_files = indexed_files
+    st.success("🎉 All documents indexed successfully!")
+
+# ============================================
+# MAIN AREA - QUESTION & ANSWER
+# ============================================
+st.write("---")
+
+if not st.session_state.indexed_files:
+    st.info("👈 **Please upload and index documents in the sidebar to get started**")
+else:
+    st.header("💬 Ask Your Question")
+    
+    question = st.text_input(
+        "Type your question here:",
+        placeholder="e.g., What courses are offered?",
+        key="main_question"
+    )
+    
+    ask_btn = st.button("🔍 Get Answer", type="primary", use_container_width=True)
+    
+    if ask_btn and question.strip():
+        # Rate limit check
+        current_time = time.time()
+        time_since_last = current_time - st.session_state.last_request_time
+        
+        if time_since_last < Config.MIN_REQUEST_INTERVAL:
+            st.warning(f"⏳ Please wait {Config.MIN_REQUEST_INTERVAL - time_since_last:.1f}s")
+            st.stop()
+        
+        st.session_state.last_request_time = current_time
+        
+        # Show user context
+        st.info(f"🔍 Searching as: **{Config.ACCESS_LEVELS[user_access_level]}** user")
+        if user_id:
+            st.caption(f"Including documents owned by: {user_id}")
+        
+        # Retrieve documents
+        with st.spinner("Retrieving relevant documents..."):
+            retrieval_result = rag_engine.query(
+                question=question,
+                user_level=user_access_level,
+                user_id=user_id if user_id else None
+            )
+        
+        if not retrieval_result["success"]:
+            st.error(f"Error retrieving documents: {retrieval_result.get('error')}")
+            st.stop()
+        
+        if not retrieval_result["documents"]:
+            st.warning(f"⚠️ No accessible documents found for: **{Config.ACCESS_LEVELS[user_access_level]}**")
+            st.info("💡 Try uploading documents with your access level or changing your user level.")
+            st.stop()
+        
+        st.success(f"✓ Found {retrieval_result['count']} relevant chunks")
+        
+        # Query LLM
+        with st.spinner(f"🤔 Generating answer with {model_choice}..."):
+            start = time.time()
+            llm_response = llm_client.query(
+                question=question,
+                context=retrieval_result["context"],
+                model=model_choice,
+                max_tokens=max_tokens
+            )
+            elapsed = time.time() - start
+        
+        if not llm_response["success"]:
+            st.error(f"Error generating answer: {llm_response.get('error')}")
+            st.stop()
+        
+        # Display answer
+        st.write("### 🧠 Answer:")
+        st.write(llm_response["text"])
+        
+        # Warning if cut off
+        if llm_response["finish_reason"] == "length":
+            st.warning("⚠️ Answer was cut off! Try increasing max_tokens.")
+        
+        # Calculate cost
+        cost_info = llm_client.calculate_cost(
+            llm_response["tokens"],
+            model_choice
+        )
+        
+        # Display metrics
+        st.write("---")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("⏱ Time", f"{elapsed:.2f}s")
+        
+        with col2:
+            if llm_response["tokens"]:
+                st.metric("📥 Input", f"{llm_response['tokens']['prompt']:,}")
+        
+        with col3:
+            if llm_response["tokens"]:
+                st.metric("📤 Output", f"{llm_response['tokens']['completion']:,}")
+        
+        with col4:
+            st.metric("💰 Cost", f"${cost_info['total_cost']:.6f}")
+        
+        # Detailed breakdown
+        if llm_response["tokens"]:
+            with st.expander("📊 Detailed Breakdown"):
+                st.markdown(f"""
+                **Model:** `{model_choice}` - {model_config.description}
+                
+                **Access Level:** {Config.ACCESS_LEVELS[user_access_level]}
+                
+                **Tokens:**
+                - Input: {llm_response['tokens']['prompt']:,}
+                - Output: {llm_response['tokens']['completion']:,}
+                - Total: {llm_response['tokens']['total']:,}
+                
+                **Cost:**
+                - Input: ${cost_info['input_cost']:.6f} (${model_config.input_cost}/M tokens)
+                - Output: ${cost_info['output_cost']:.6f} (${model_config.output_cost}/M tokens)
+                - **Total**: ${cost_info['total_cost']:.6f}
+                
+                **Sources:**
+                {chr(10).join('- ' + src for src in retrieval_result['sources'])}
+                
+                **At scale:**
+                - 100 queries: ${cost_info['total_cost'] * 100:.4f}
+                - 1,000 queries: ${cost_info['total_cost'] * 1000:.2f}
+                - 10,000 queries: ${cost_info['total_cost'] * 10000:.2f}
+                """)
