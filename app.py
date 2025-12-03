@@ -118,43 +118,73 @@ with st.sidebar:
     # Document upload section
     st.header("📁 Upload Documents")
     
-    # Document access level
-    doc_access_level = st.selectbox(
-        "Document Access Level",
-        list(Config.ACCESS_LEVELS.keys()),
-        format_func=lambda x: Config.ACCESS_LEVELS[x],
-        key="doc_access",
-        help="Who can access this document?"
-    )
-    
-    # Document owner
-    doc_owner = st.text_input(
-        "Document Owner (optional)",
-        placeholder="e.g., stu_12345",
-        help="For personal documents",
-        key="doc_owner"
-    )
-    
-    st.caption("---")
-    
     # File uploaders
     uploaded_files = st.file_uploader(
-        "Upload Documents",
+        "Choose Documents",
         type=['pdf', 'xlsx', 'xls'],
         accept_multiple_files=True,
         help="Upload PDF or Excel files"
     )
     
+    # Store document settings in session state
+    if "doc_settings" not in st.session_state:
+        st.session_state.doc_settings = {}
+    
+    # If files are uploaded, show settings for each
+    if uploaded_files:
+        st.write("---")
+        st.subheader("📋 Configure Each Document")
+        
+        for idx, uploaded_file in enumerate(uploaded_files):
+            file_key = f"{uploaded_file.name}_{uploaded_file.size}"
+            
+            # Initialize settings for this file if not exists
+            if file_key not in st.session_state.doc_settings:
+                st.session_state.doc_settings[file_key] = {
+                    "access_level": "public",
+                    "owner": ""
+                }
+            
+            with st.expander(f"📄 {uploaded_file.name}", expanded=True):
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    access_level = st.selectbox(
+                        "Access Level",
+                        list(Config.ACCESS_LEVELS.keys()),
+                        format_func=lambda x: Config.ACCESS_LEVELS[x],
+                        key=f"access_{file_key}",
+                        index=list(Config.ACCESS_LEVELS.keys()).index(
+                            st.session_state.doc_settings[file_key]["access_level"]
+                        )
+                    )
+                    st.session_state.doc_settings[file_key]["access_level"] = access_level
+                
+                with col2:
+                    owner = st.text_input(
+                        "Owner (optional)",
+                        placeholder="stu_12345",
+                        key=f"owner_{file_key}",
+                        value=st.session_state.doc_settings[file_key]["owner"]
+                    )
+                    st.session_state.doc_settings[file_key]["owner"] = owner
+                
+                # Show info
+                st.caption(f"📊 Size: {uploaded_file.size / 1024:.1f} KB | Type: {uploaded_file.type}")
+        
+        st.write("---")
+    
     clear_before_index = st.checkbox(
-        "Clear previous documents",
+        "Clear previous documents before indexing",
         value=True,
-        help="Remove old documents before indexing"
+        help="Remove old documents before indexing new ones"
     )
     
     index_btn = st.button(
-        "📚 Index Documents",
+        "📚 Index All Documents",
         type="primary",
-        use_container_width=True
+        use_container_width=True,
+        disabled=not uploaded_files
     )
     
     # Clear database button
@@ -183,7 +213,7 @@ with st.sidebar:
 # DOCUMENT INDEXING
 # ============================================
 if index_btn and uploaded_files:
-    st.subheader("Indexing Documents")
+    st.subheader("📚 Indexing Documents")
     
     # Clear if requested
     if clear_before_index:
@@ -191,10 +221,17 @@ if index_btn and uploaded_files:
         if result["success"] and result.get("deleted", 0) > 0:
             st.info(f"🗑️ Cleared {result['deleted']} previous chunks")
     
-    # Index each file
+    # Index each file with its individual settings
     indexed_files = []
+    progress_bar = st.progress(0)
     
-    for uploaded_file in uploaded_files:
+    for idx, uploaded_file in enumerate(uploaded_files):
+        file_key = f"{uploaded_file.name}_{uploaded_file.size}"
+        settings = st.session_state.doc_settings.get(file_key, {
+            "access_level": "public",
+            "owner": ""
+        })
+        
         with st.spinner(f"Indexing {uploaded_file.name}..."):
             file_bytes = uploaded_file.read()
             file_extension = Path(uploaded_file.name).suffix
@@ -203,23 +240,32 @@ if index_btn and uploaded_files:
                 file_bytes=file_bytes,
                 file_name=uploaded_file.name,
                 file_extension=file_extension,
-                access_level=doc_access_level,
-                owner=doc_owner if doc_owner else None
+                access_level=settings["access_level"],
+                owner=settings["owner"] if settings["owner"] else None
             )
             
             if result["success"]:
-                access_label = Config.ACCESS_LEVELS[doc_access_level]
+                access_label = Config.ACCESS_LEVELS[settings["access_level"]]
                 file_icon = "📄" if file_extension == ".pdf" else "📊"
+                
+                # Include owner in display if set
+                owner_text = f" | Owner: {settings['owner']}" if settings["owner"] else ""
                 indexed_files.append(
-                    f"{file_icon} {result['file_name']} ({access_label}) - {result['chunks']} chunks"
+                    f"{file_icon} {result['file_name']} ({access_label}{owner_text}) - {result['chunks']} chunks"
                 )
-                st.success(f"✅ Indexed: {result['file_name']} ({result['chunks']} chunks)")
+                st.success(f"✅ {result['file_name']}: {result['chunks']} chunks indexed")
             else:
                 st.error(f"❌ Failed: {uploaded_file.name} - {result['error']}")
+        
+        # Update progress
+        progress_bar.progress((idx + 1) / len(uploaded_files))
     
-    # Update session state
+    # Update session state and clear settings
     st.session_state.indexed_files = indexed_files
-    st.success("🎉 All documents indexed successfully!")
+    st.session_state.doc_settings = {}
+    
+    st.success(f"🎉 Successfully indexed {len(indexed_files)} document(s)!")
+    st.balloons()
 
 # ============================================
 # MAIN AREA - QUESTION & ANSWER
