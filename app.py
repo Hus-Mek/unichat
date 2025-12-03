@@ -371,12 +371,13 @@ else:
             with st.expander("📊 Detailed Breakdown", expanded=False):
                 # Show access levels of retrieved documents
                 retrieved_metadatas = retrieval_result.get("metadatas", [])
+                sources_detail = retrieval_result.get("sources_detail", {})
+                
                 if retrieved_metadatas:
                     access_levels_found = {}
                     for meta in retrieved_metadatas:
                         level = meta.get("access_level", "unknown")
                         owner = meta.get("owner", "")
-                        source = meta.get("source", "unknown")
                         key = f"{level}"
                         if owner:
                             key += f" (owner: {owner})"
@@ -384,7 +385,16 @@ else:
                     
                     retrieved_docs_info = "\n".join([f"- {k}: {v} chunks" for k, v in access_levels_found.items()])
                 else:
-                    retrieved_docs_info = "No metadata available"
+                    retrieved_docs_info = "⚠️ No metadata available (old version - please re-deploy)"
+                
+                # Detailed source breakdown
+                if sources_detail:
+                    sources_breakdown = "\n".join([
+                        f"- **{source}** ({info['access_level']}): {info['count']} chunks" 
+                        for source, info in sources_detail.items()
+                    ])
+                else:
+                    sources_breakdown = "\n".join(['- ' + src for src in retrieval_result['sources']])
                 
                 st.markdown(f"""
                 **Model:** `{model_choice}` - {model_config.description}
@@ -392,14 +402,14 @@ else:
                 **Your Access Level:** {Config.ACCESS_LEVELS[user_access_level]}
                 {f"**Your User ID:** {user_id}" if user_id else ""}
                 
-                **Retrieved Documents:**
+                **Retrieved Documents by Access Level:**
                 {retrieved_docs_info}
+                
+                **Retrieved Documents by Source:**
+                {sources_breakdown}
                 
                 **Tokens:**
                 - Input: {llm_response['tokens']['prompt']:,}
                 - Output: {llm_response['tokens']['completion']:,}
                 - Total: {llm_response['tokens']['total']:,}
-                
-                **Sources:**
-                {chr(10).join('- ' + src for src in retrieval_result['sources'])}
                 """)

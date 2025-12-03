@@ -176,19 +176,29 @@ class RAGEngine:
             # Build context
             context = "\n\n".join(documents)
             
-            # Extract unique sources
-            sources = list(set([
-                meta.get("source", "unknown") 
-                for meta in metadatas
-            ]))
+            # Extract sources with detailed breakdown
+            sources_detail = {}
+            for meta in metadatas:
+                source = meta.get("source", "unknown")
+                access_level = meta.get("access_level", "unknown")
+                if source not in sources_detail:
+                    sources_detail[source] = {
+                        "count": 0,
+                        "access_level": access_level
+                    }
+                sources_detail[source]["count"] += 1
+            
+            # Simple list for backward compatibility
+            sources = list(sources_detail.keys())
             
             return {
                 "success": True,
                 "documents": documents,
                 "context": context,
                 "sources": sources,
+                "sources_detail": sources_detail,  # ← Detailed breakdown
                 "count": len(documents),
-                "metadatas": metadatas  # ← Add this!
+                "metadatas": metadatas
             }
             
         except Exception as e:
