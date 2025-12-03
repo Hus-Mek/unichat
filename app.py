@@ -3,12 +3,18 @@ Streamlit Application
 Main UI for University RAG Assistant
 """
 
+import sys
+import os
+
+# Add the project root to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import streamlit as st
 import time
 from pathlib import Path
 
 # Import our modules
 from src import Config, RAGEngine, LLMClient, AccessController
+
 
 # ============================================
 # SESSION STATE
