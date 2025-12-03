@@ -102,5 +102,5 @@ class Config:
         """Get configuration for a specific model"""
         return cls.MODELS.get(
             model_name, 
-            cls.MODELS["llama-3.3-70b-versatile"]
+            cls.MODELS["llama-3.3-70b"]
         )
