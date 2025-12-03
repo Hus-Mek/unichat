@@ -50,23 +50,45 @@ class Config:
     
     # Available LLM models
     MODELS: Dict[str, ModelConfig] = {
-        "llama-3.3-70b-versatile": ModelConfig(
-            name="llama-3.3-70b-versatile",
-            description="70B | Best quality",
+        # Llama models
+        "llama-4-scout": ModelConfig(
+            name="llama-4-scout",
+            description="Llama 4 Scout | Fast & efficient",
+            input_cost=0.10,
+            output_cost=0.10
+        ),
+        "llama-3.3-70b": ModelConfig(
+            name="llama-3.3-70b",
+            description="Llama 3.3 70B | Best quality",
             input_cost=0.59,
             output_cost=0.79
         ),
-        "llama-3.1-70b-versatile": ModelConfig(
-            name="llama-3.1-70b-versatile",
-            description="70B | Production",
-            input_cost=0.59,
-            output_cost=0.79
+        # Qwen models
+        "qwen-3-32b": ModelConfig(
+            name="qwen-3-32b",
+            description="Qwen 3 32B | Advanced reasoning",
+            input_cost=0.27,
+            output_cost=0.27
         ),
-        "llama-3.1-8b-instant": ModelConfig(
-            name="llama-3.1-8b-instant",
-            description="8B | Fast",
-            input_cost=0.05,
-            output_cost=0.08
+        # GPT models (via Groq API)
+        "gpt-oss-120b": ModelConfig(
+            name="gpt-oss-120b",
+            description="GPT OSS 120B | Premium quality",
+            input_cost=0.60,
+            output_cost=0.60
+        ),
+        "gpt-oss-20b": ModelConfig(
+            name="gpt-oss-20b",
+            description="GPT OSS 20B | Balanced",
+            input_cost=0.10,
+            output_cost=0.10
+        ),
+        # Other capable models
+        "kimi-k2": ModelConfig(
+            name="kimi-k2",
+            description="Kimi K2 | Long context",
+            input_cost=0.15,
+            output_cost=0.15
         ),
     }
     
