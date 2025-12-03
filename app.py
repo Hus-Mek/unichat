@@ -351,7 +351,7 @@ else:
         
         # Display metrics
         st.write("---")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.metric("⏱ Time", f"{elapsed:.2f}s")
@@ -364,32 +364,42 @@ else:
             if llm_response["tokens"]:
                 st.metric("📤 Output", f"{llm_response['tokens']['completion']:,}")
         
-        with col4:
-            st.metric("💰 Cost", f"${cost_info['total_cost']:.6f}")
-        
-        # Detailed breakdown
+        # Detailed breakdown (with unique key to force update)
         if llm_response["tokens"]:
-            with st.expander("📊 Detailed Breakdown"):
+            # Use question hash + timestamp to force refresh
+            expander_key = f"breakdown_{hash(question)}_{int(time.time() * 1000)}"
+            with st.expander("📊 Detailed Breakdown", expanded=False):
+                # Show access levels of retrieved documents
+                retrieved_metadatas = retrieval_result.get("metadatas", [])
+                if retrieved_metadatas:
+                    access_levels_found = {}
+                    for meta in retrieved_metadatas:
+                        level = meta.get("access_level", "unknown")
+                        owner = meta.get("owner", "")
+                        source = meta.get("source", "unknown")
+                        key = f"{level}"
+                        if owner:
+                            key += f" (owner: {owner})"
+                        access_levels_found[key] = access_levels_found.get(key, 0) + 1
+                    
+                    retrieved_docs_info = "\n".join([f"- {k}: {v} chunks" for k, v in access_levels_found.items()])
+                else:
+                    retrieved_docs_info = "No metadata available"
+                
                 st.markdown(f"""
                 **Model:** `{model_choice}` - {model_config.description}
                 
-                **Access Level:** {Config.ACCESS_LEVELS[user_access_level]}
+                **Your Access Level:** {Config.ACCESS_LEVELS[user_access_level]}
+                {f"**Your User ID:** {user_id}" if user_id else ""}
+                
+                **Retrieved Documents:**
+                {retrieved_docs_info}
                 
                 **Tokens:**
                 - Input: {llm_response['tokens']['prompt']:,}
                 - Output: {llm_response['tokens']['completion']:,}
                 - Total: {llm_response['tokens']['total']:,}
                 
-                **Cost:**
-                - Input: ${cost_info['input_cost']:.6f} (${model_config.input_cost}/M tokens)
-                - Output: ${cost_info['output_cost']:.6f} (${model_config.output_cost}/M tokens)
-                - **Total**: ${cost_info['total_cost']:.6f}
-                
                 **Sources:**
                 {chr(10).join('- ' + src for src in retrieval_result['sources'])}
-                
-                **At scale:**
-                - 100 queries: ${cost_info['total_cost'] * 100:.4f}
-                - 1,000 queries: ${cost_info['total_cost'] * 1000:.2f}
-                - 10,000 queries: ${cost_info['total_cost'] * 10000:.2f}
                 """)

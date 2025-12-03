@@ -187,7 +187,8 @@ class RAGEngine:
                 "documents": documents,
                 "context": context,
                 "sources": sources,
-                "count": len(documents)
+                "count": len(documents),
+                "metadatas": metadatas  # ← Add this!
             }
             
         except Exception as e:
