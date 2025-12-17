@@ -100,7 +100,14 @@ class Config:
     @classmethod
     def get_model_config(cls, model_name: str) -> ModelConfig:
         """Get configuration for a specific model"""
-        return cls.MODELS.get(
-            model_name, 
-            cls.MODELS["llama-3.3-70b"]
-        )
+        # Exact match
+        if model_name in cls.MODELS:
+            return cls.MODELS[model_name]
+
+        # Prefer known stable defaults if present
+        for candidate in ("llama-3.3-70b-versatile", "llama-4-scout-17b-16e-instruct"):
+            if candidate in cls.MODELS:
+                return cls.MODELS[candidate]
+
+        # Fallback to the first available model
+        return next(iter(cls.MODELS.values()))

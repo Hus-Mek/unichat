@@ -44,8 +44,11 @@ class LLMClient:
         prompt = self._build_prompt(question, context)
         
         try:
+            # Resolve model ID from config (allows friendly keys vs provider IDs)
+            resolved = Config.get_model_config(model).name if model in self.models else model
+
             completion = self.client.chat.completions.create(
-                model=model,
+                model=resolved,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=max_tokens
