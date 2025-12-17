@@ -51,14 +51,14 @@ class Config:
     # Available LLM models
     MODELS: Dict[str, ModelConfig] = {
         # Llama models
-        "llama-4-scout": ModelConfig(
-            name="llama-4-scout",
+        "llama-4-scout-17b-16e-instruct": ModelConfig(
+            name="meta-llama/llama-4-scout-17b-16e-instruct",
             description="Llama 4 Scout | Fast & efficient",
             input_cost=0.10,
             output_cost=0.10
         ),
-        "llama-3.3-70b": ModelConfig(
-            name="llama-3.3-70b",
+        "llama-3.3-70b-versatile": ModelConfig(
+            name="llama-3.3-70b-versatile",
             description="Llama 3.3 70B | Best quality",
             input_cost=0.59,
             output_cost=0.79
