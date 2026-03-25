@@ -6,14 +6,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...db.database import get_db
-from ...models.session import ChatMessage, ChatSession
-from ...models.user import User
-from ...rag.vector_store import VectorStore
-from ...schemas.chat import ChatMessageResponse, ChatRequest, ChatResponse, ChatSessionResponse, TokenUsage
-from ...services.llm_service import LLMService
-from ...services.rag_service import handle_query
-from ..deps import get_current_user
+from db.database import get_db
+from models.session import ChatMessage, ChatSession
+from models.user import User
+from rag.vector_store import VectorStore
+from schemas.chat import ChatMessageResponse, ChatRequest, ChatResponse, ChatSessionResponse, TokenUsage
+from services.llm_service import LLMService
+from services.rag_service import handle_query
+from api.deps import get_current_user
 
 router = APIRouter()
 

@@ -5,16 +5,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.access_control import AccessLevel
-from ...db.database import get_db
-from ...models.user import User
-from ...schemas.collection import (
+from core.access_control import AccessLevel
+from db.database import get_db
+from models.user import User
+from schemas.collection import (
     CollectionCreate,
     CollectionResponse,
     CollectionUpdate,
     GrantAccessRequest,
 )
-from ...services.collection_service import (
+from services.collection_service import (
     create_collection,
     delete_collection,
     get_collection,
@@ -22,7 +22,7 @@ from ...services.collection_service import (
     list_collections,
     update_collection,
 )
-from ..deps import get_current_user, require_access_level
+from api.deps import get_current_user, require_access_level
 
 router = APIRouter()
 

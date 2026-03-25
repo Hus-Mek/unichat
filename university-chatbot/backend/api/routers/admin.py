@@ -7,15 +7,15 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.access_control import AccessLevel
-from ...db.database import get_db
-from ...models.audit import AuditLog
-from ...models.document import Document, DocumentChunk
-from ...models.session import ChatMessage
-from ...models.user import User
-from ...schemas.admin import AuditLogResponse, ReportRequest, SystemStats
-from ...schemas.auth import UserResponse, UserUpdate
-from ..deps import require_access_level
+from core.access_control import AccessLevel
+from db.database import get_db
+from models.audit import AuditLog
+from models.document import Document, DocumentChunk
+from models.session import ChatMessage
+from models.user import User
+from schemas.admin import AuditLogResponse, ReportRequest, SystemStats
+from schemas.auth import UserResponse, UserUpdate
+from api.deps import require_access_level
 
 router = APIRouter()
 

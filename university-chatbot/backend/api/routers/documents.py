@@ -5,19 +5,19 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.access_control import AccessLevel
-from ...db.database import get_db
-from ...models.user import User
-from ...rag.vector_store import VectorStore
-from ...schemas.document import DocumentListResponse, DocumentResponse
-from ...services.collection_service import get_collection
-from ...services.document_service import (
+from core.access_control import AccessLevel
+from db.database import get_db
+from models.user import User
+from rag.vector_store import VectorStore
+from schemas.document import DocumentListResponse, DocumentResponse
+from services.collection_service import get_collection
+from services.document_service import (
     delete_document,
     get_document,
     list_documents,
     upload_and_index,
 )
-from ..deps import get_current_user, require_access_level
+from api.deps import get_current_user, require_access_level
 
 router = APIRouter()
 

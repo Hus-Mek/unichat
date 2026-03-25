@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from ...core.config import MODELS, get_settings
+from core.config import MODELS, get_settings
 
 router = APIRouter()
 

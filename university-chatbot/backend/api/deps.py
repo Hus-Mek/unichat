@@ -8,11 +8,11 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.access_control import AccessLevel, parse_access_level
-from ..core.config import get_settings
-from ..core.security import verify_token
-from ..db.database import get_db
-from ..models.user import User
+from core.access_control import AccessLevel, parse_access_level
+from core.config import get_settings
+from core.security import verify_token
+from db.database import get_db
+from models.user import User
 
 security_scheme = HTTPBearer()
 
